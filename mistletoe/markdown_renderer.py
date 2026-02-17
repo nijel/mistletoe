@@ -2,6 +2,8 @@
 Markdown renderer for mistletoe.
 """
 
+from __future__ import annotations
+
 import re
 from itertools import chain
 from typing import Iterable, Sequence
@@ -95,8 +97,8 @@ class MarkdownRenderer(BaseRenderer):
     def __init__(
         self,
         *extras,
-        max_line_length: int = None,
-        normalize_whitespace=False
+        max_line_length: int | None = None,
+        normalize_whitespace: bool = False,
     ):
         """
         Args:
@@ -254,12 +256,12 @@ class MarkdownRenderer(BaseRenderer):
     # rendered into sequences of lines (strings), to be joined by newlines.
 
     def render_document(
-        self, token: block_token.Document, max_line_length: int
+        self, token: block_token.Document, max_line_length: int | None
     ) -> Iterable[str]:
         return self.blocks_to_lines(token.children, max_line_length=max_line_length)
 
     def render_heading(
-        self, token: block_token.Heading, max_line_length: int
+        self, token: block_token.Heading, max_line_length: int | None
     ) -> Iterable[str]:
         # note: no word wrapping, because atx headings always fit on a single line.
         line = "#" * token.level
@@ -271,13 +273,13 @@ class MarkdownRenderer(BaseRenderer):
         return [line]
 
     def render_setext_heading(
-        self, token: block_token.SetextHeading, max_line_length: int
+        self, token: block_token.SetextHeading, max_line_length: int | None
     ) -> Iterable[str]:
         yield from self.span_to_lines(token.children, max_line_length=max_line_length)
         yield token.underline
 
     def render_quote(
-        self, token: block_token.Quote, max_line_length: int
+        self, token: block_token.Quote, max_line_length: int | None
     ) -> Iterable[str]:
         max_child_line_length = max_line_length - 2 if max_line_length else None
         lines = self.blocks_to_lines(
@@ -286,18 +288,18 @@ class MarkdownRenderer(BaseRenderer):
         return self.prefix_lines(lines or [""], "> ")
 
     def render_paragraph(
-        self, token: block_token.Paragraph, max_line_length: int
+        self, token: block_token.Paragraph, max_line_length: int | None
     ) -> Iterable[str]:
         return self.span_to_lines(token.children, max_line_length=max_line_length)
 
     def render_block_code(
-        self, token: block_token.BlockCode, max_line_length: int
+        self, token: block_token.BlockCode, max_line_length: int | None
     ) -> Iterable[str]:
         lines = token.content[:-1].split("\n")
         return self.prefix_lines(lines, "    ")
 
     def render_fenced_code_block(
-        self, token: block_token.BlockCode, max_line_length: int
+        self, token: block_token.BlockCode, max_line_length: int | None
     ) -> Iterable[str]:
         indentation = " " * token.indentation
         yield indentation + token.delimiter + token.info_string
@@ -307,12 +309,12 @@ class MarkdownRenderer(BaseRenderer):
         yield indentation + token.delimiter
 
     def render_list(
-        self, token: block_token.List, max_line_length: int
+        self, token: block_token.List, max_line_length: int | None
     ) -> Iterable[str]:
         return self.blocks_to_lines(token.children, max_line_length=max_line_length)
 
     def render_list_item(
-        self, token: block_token.ListItem, max_line_length: int
+        self, token: block_token.ListItem, max_line_length: int | None
     ) -> Iterable[str]:
         if self.normalize_whitespace:
             prepend = len(token.leader) + 1
@@ -333,7 +335,7 @@ class MarkdownRenderer(BaseRenderer):
         )
 
     def render_table(
-        self, token: block_token.Table, max_line_length: int
+        self, token: block_token.Table, max_line_length: int | None
     ) -> Iterable[str]:
         # note: column widths are not preserved; they are automatically adjusted to fit the contents.
         content = [self.table_row_to_text(token.header), []]
@@ -346,24 +348,24 @@ class MarkdownRenderer(BaseRenderer):
         ]
 
     def render_thematic_break(
-        self, token: block_token.ThematicBreak, max_line_length: int
+        self, token: block_token.ThematicBreak, max_line_length: int | None
     ) -> Iterable[str]:
         return [token.line]
 
     def render_html_block(
-        self, token: block_token.HtmlBlock, max_line_length: int
+        self, token: block_token.HtmlBlock, max_line_length: int | None
     ) -> Iterable[str]:
         return token.content.split("\n")
 
     def render_link_reference_definition_block(
-        self, token: LinkReferenceDefinitionBlock, max_line_length: int
+        self, token: LinkReferenceDefinitionBlock, max_line_length: int | None
     ) -> Iterable[str]:
         # each link reference definition starts on a new line
         for child in token.children:
             yield from self.span_to_lines([child], max_line_length=max_line_length)
 
     def render_blank_line(
-        self, token: BlankLine, max_line_length: int
+        self, token: BlankLine, max_line_length: int | None
     ) -> Iterable[str]:
         return [""]
 
@@ -373,7 +375,7 @@ class MarkdownRenderer(BaseRenderer):
         self,
         leader: Fragment,
         tokens: Iterable[span_token.SpanToken],
-        trailer: Fragment = None,
+        trailer: Fragment | None = None,
     ) -> Iterable[Fragment]:
         """
         Makes fragments from `tokens` and embeds within a leader and a trailer.
@@ -384,7 +386,7 @@ class MarkdownRenderer(BaseRenderer):
         yield trailer or leader
 
     def blocks_to_lines(
-        self, tokens: Iterable[block_token.BlockToken], max_line_length: int
+        self, tokens: Iterable[block_token.BlockToken], max_line_length: int | None
     ) -> Iterable[str]:
         """
         Renders a sequence of block tokens into a sequence of lines.
@@ -395,7 +397,7 @@ class MarkdownRenderer(BaseRenderer):
             )
 
     def span_to_lines(
-        self, tokens: Iterable[span_token.SpanToken], max_line_length: int
+        self, tokens: Iterable[span_token.SpanToken], max_line_length: int | None
     ) -> Iterable[str]:
         """
         Renders a sequence of span (inline) tokens into a sequence of lines.
@@ -414,7 +416,7 @@ class MarkdownRenderer(BaseRenderer):
 
     @classmethod
     def fragments_to_lines(
-        cls, fragments: Iterable[Fragment], max_line_length: int = None
+        cls, fragments: Iterable[Fragment], max_line_length: int | None = None
     ) -> Iterable[str]:
         """
         Renders a sequence of Fragments into lines.
@@ -492,7 +494,7 @@ class MarkdownRenderer(BaseRenderer):
         cls,
         lines: Iterable[str],
         first_line_prefix: str,
-        following_line_prefix: str = None,
+        following_line_prefix: str | None = None,
     ) -> Iterable[str]:
         """
         Prepends a prefix string to a sequence of lines. The first line may
